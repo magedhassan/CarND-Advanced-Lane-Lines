@@ -1,39 +1,80 @@
 ## Advanced Lane Finding
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
-![Lanes Image](./examples/example_output.jpg)
+![Lanes Image](./test_images_output/out_test2.jpg)
 
-In this project, your goal is to write a software pipeline to identify the lane boundaries in a video, but the main output or product we want you to create is a detailed writeup of the project.  Check out the [writeup template](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) for this project and use it as a starting point for creating your own writeup.  
+In this project, the goal is to write a software pipeline to identify the lane boundaries in a video or a series of images.
 
-Creating a great writeup:
----
-A great writeup should include the rubric points as well as your description of how you addressed each point.  You should include a detailed description of the code used in each step (with line-number references and code snippets where necessary), and links to other supporting documents or external references.  You should include images in your writeup to demonstrate how your code works with examples.  
 
-All that said, please be concise!  We're not looking for you to write a book here, just a brief description of how you passed each rubric point, and references to the relevant code :). 
-
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup.
-
-The Project
+## The Lane Detection Pipeline
 ---
 
-The goals / steps of this project are the following:
+The following steps are being performed to create the pipeline for detecting lane lines:
 
-* Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
-* Apply a distortion correction to raw images.
-* Use color transforms, gradients, etc., to create a thresholded binary image.
-* Apply a perspective transform to rectify binary image ("birds-eye view").
-* Detect lane pixels and fit to find the lane boundary.
-* Determine the curvature of the lane and vehicle position with respect to center.
-* Warp the detected lane boundaries back onto the original image.
-* Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
+1. Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
+2. Apply a distortion correction to raw images.
+3. Use color transforms, gradients, etc., to create a thresholded binary image.
+4. Apply a perspective transform to rectify binary image ("birds-eye view").
+5. Detect lane pixels and fit to find the lane boundary.
+6. Determine the curvature of the lane and vehicle position with respect to center.
+7. Warp the detected lane boundaries back onto the original image.
+8. Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
+---
 
-The images for camera calibration are stored in the folder called `camera_cal`.  The images in `test_images` are for testing your pipeline on single frames.  If you want to extract more test images from the videos, you can simply use an image writing method like `cv2.imwrite()`, i.e., you can read the video in frame by frame as usual, and for frames you want to save for later you can write to an image file.  
+Now let's say a few words about each of these steps:
 
-To help the reviewer examine your work, please save examples of the output from each stage of your pipeline in the folder called `output_images`, and include a description in your writeup for the project of what each image shows.    The video called `project_video.mp4` is the video your pipeline should work well on.  
+### 1. Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
 
-The `challenge_video.mp4` video is an extra (and optional) challenge for you if you want to test your pipeline under somewhat trickier conditions.  The `harder_challenge.mp4` video is another optional challenge and is brutal!
+Using a chessboard with known number of corners, we take a series of photos of this chessboard from different angles and then detect the corners in those images. The detected image points and the known object points are then fed to the OpenCV function `calibrateCamera()` that will in turn compute the camera calibration matrix and distortion coefficients.
 
-If you're feeling ambitious (again, totally optional though), don't stop there!  We encourage you to go out and take video of your own, calibrate your camera and show us how you would implement this project from scratch!
+### 2. Apply a distortion correction to raw images.
 
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
+Using the computed camera calibration matrix and distortion coefficients we can undistort images and/or video frames as in the below photo.  
 
+![Lanes Image](./output_images/undistorted_chessboard.png)
+
+### 3. Use color transforms, gradients, etc., to create a thresholded binary image.
+
+Using color transforms and gradients we can emphasis the area where the lane lines are supposed to be.
+
+Checking color spaces such as HLS can be beneficial in detecting lane lines that are not strictly white. On the other hand checking the vertical gradient as well as the gradient direction will help isolating the lane lines as they are mostly vertical from the driver point of view.  
+
+![Lanes Image](./output_images/thresholding.png)
+
+### 4. Apply a perspective transform to rectify binary image ("birds-eye view").
+
+Using the OpenCV function `warpPerspective()` we can change the prespective of the road image to make it look like an image taken from above the road.
+This will help us isolate the lane lines in the next step.
+
+The OpenCV function `warpPerspective()` will also produce an inverse matrix that we will use to project the detected lane lines back on the actual road image or video.  
+
+![Lanes Image](./output_images/topdown.png)
+
+### 5. Detect lane pixels and fit to find the lane boundary.
+
+Detecting lane lines can be done by taking a histogram of the bottom half of the image
+
+![Lanes Image](./output_images/detected_lines.png)
+
+### 6. Determine the curvature of the lane and vehicle position with respect to center.
+
+ Detecting the curvature of the lane can be done after fitting the left and right lane lines with a polynomial then we can calculate as well the vehicle position with respect to center. The calculated vehicle position can be used later for steering the vehicle to the desired position.  
+
+### 7. Warp the detected lane boundaries back onto the original image.
+
+As mentioned before in step 4, the OpenCV function `warpPerspective()` will produce an inverse matrix that we will use to project the detected lane lines on the actual road image or video.
+
+![Lanes Image](./test_images_output/out_test1.jpg)
+
+
+### 8. Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
+
+As we can see in the previous step; we printed on the image also an estimation of lane curvature and vehicle position relative to the lane center.
+
+---
+
+## Challenges
+---
+There are still a lot of Challenges in detecting lane lines, some of them have been faced in this project and still to be solved:
+- Using the correct color space and gradients with the correct thresholds is still a big challenge and had been done manually in this project.
+- Also changing the image perspective is prone to error in case the car didn't start in the correct position (i.e. approximately in the center of the lane)
+- In this project, the lane line have been fairly detected in the highway with some shadows and color changes in the road as well as slight road curvature. However driving in the city or on roads with a lot of curves is a big challenge and needs a different solution other than manual tweaking of parameters.
